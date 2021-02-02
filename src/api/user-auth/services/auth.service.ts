@@ -1,3 +1,4 @@
+import { ProviderService } from './provider.service';
 import { ConfigService } from '@nestjs/config';
 import { UserEntity } from './../user.entity';
 import { UserService } from './user.service';
@@ -17,9 +18,10 @@ export class AuthService {
   private emailRegExp = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   constructor(
     private readonly userService: UserService,
+    private readonly providerService: ProviderService,
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
-    private configService: ConfigService
+    private configService: ConfigService,
   ) {}
 
   generateTempToken(payload: string | object | Buffer) {
@@ -44,7 +46,7 @@ export class AuthService {
     const user = await this.userService.usersRepository.findOne(
       isEmail ? { email: identifier } : { username: identifier },
     );
-    if (user && UserEntity.comparePassword(password,user.password)) {
+    if (user && UserEntity.comparePassword(password, user.password)) {
       const { password, ...result } = user;
       return result;
     }
@@ -68,28 +70,32 @@ export class AuthService {
     const payload = { username: user.username, sub: user.id };
     return {
       jwt: this.jwtService.sign(payload),
-      user: plainToClass(UserDto,user),
+      user: plainToClass(UserDto, user),
     };
   }
 
   async generateLoginJwtPayload(user: UserEntity) {
-    console.log("user",user);
-    
+    console.log('user', user);
+
     const payload = { username: user.username, sub: user.id };
     const { password, ...result } = user;
     return {
       jwt: this.jwtService.sign(payload),
-      user: plainToClass(UserDto,user),
+      user: plainToClass(UserDto, user),
     };
   }
 
   async register(registerUserDto: RegisterUserDto, provider: string = 'local') {
-    registerUserDto.password=UserEntity.hashPassword(registerUserDto.password);
+    registerUserDto.password = UserEntity.hashPassword(
+      registerUserDto.password,
+    );
+    const defaultRole = this.configService.get('app.defaultRole');
     const newUser = new UserEntity({
       ...registerUserDto,
+      role: defaultRole,
       provider: provider,
-    })
-    return this.userService.usersRepository.save(newUser)
+    });
+    return this.userService.usersRepository.save(newUser);
   }
 
   async forgotPassword(email: string) {
@@ -139,10 +145,12 @@ export class AuthService {
         resetPasswordToken: token,
       });
       if (!user)
-        throw new UnauthorizedException('Invalid token or expired token, try again');
+        throw new UnauthorizedException(
+          'Invalid token or expired token, try again',
+        );
       // const hashedPassword = this.userService.hashPassword(password);
       await this.userService.usersRepository.update(user.id, {
-        password:UserEntity.hashPassword(password),
+        password: UserEntity.hashPassword(password),
         resetPasswordToken: null,
       });
       return {
@@ -163,7 +171,8 @@ export class AuthService {
     const user = await this.userService.usersRepository.findOne({ email });
     if (!user)
       throw new BadRequestException('User with this email does not exists.');
-    if(user.confirmed) throw new BadRequestException('Email already confirmed');
+    if (user.confirmed)
+      throw new BadRequestException('Email already confirmed');
     // Generate random token.
     const confirmationToken = this.generateTempToken({ email });
     // Make Reset Link
@@ -190,24 +199,45 @@ export class AuthService {
   }
 
   async emailConfirmation(token: string) {
-    if(!token) throw new BadRequestException('Incorrect params provided');
-      const payload = this.verifyTempToken(token);
-      if (!payload)
-        throw new UnauthorizedException(
-          'Invalid token or expired token, try again',
-        );
-      const user = await this.userService.usersRepository.findOne({
-        email: payload.email,
-        confirmationToken: token,
+    if (!token) throw new BadRequestException('Incorrect params provided');
+    const payload = this.verifyTempToken(token);
+    if (!payload)
+      throw new UnauthorizedException(
+        'Invalid token or expired token, try again',
+      );
+    const user = await this.userService.usersRepository.findOne({
+      email: payload.email,
+      confirmationToken: token,
+    });
+    if (!user)
+      throw new UnauthorizedException(
+        'Invalid token or expired token, try again',
+      );
+    await this.userService.usersRepository.update(user.id, {
+      confirmed: true,
+      confirmationToken: null,
+    });
+    return {
+      ok: true,
+    };
+  }
+
+  async authenticateWithProvider(provider: string, query: any) {
+    const userProfile = await this.providerService
+      .getProfileFromProvider(provider, query)
+      .catch((err) => {
+        throw new BadRequestException(err);
       });
-      if (!user)
-        throw new UnauthorizedException('Invalid token or expired token, try again');
-      await this.userService.usersRepository.update(user.id, {
-        confirmed: true,
-        confirmationToken: null,
-      });
-      return {
-        ok: true,
-      };
+    if (!userProfile.email) {
+      throw new BadRequestException('Email was not available.');
+    }
+    const defaultRole = this.configService.get('app.defaultRole');
+    const newOrExistingUser = await this.userService.findOrCreate({
+      ...userProfile,
+      role: defaultRole,
+      confirmed: true,
+    });
+
+    return this.generateLoginJwtPayload(newOrExistingUser);
   }
 }

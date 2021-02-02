@@ -26,4 +26,14 @@ export class UserService {
       ok: true,
     };
   }
+
+  async findOrCreate(user:Partial<UserEntity>){
+    const find = await this.usersRepository.findOne({email:user.email})
+    if(find){
+      return find
+    }else{
+      await this.usersRepository.save(user)
+      return this.usersRepository.findOne({email:user.email})
+    }
+  }
 }

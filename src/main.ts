@@ -5,16 +5,27 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as session from 'express-session';
+import Grant from 'grant'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule,{
     bodyParser: true,
     logger:true
   });
+  const configService = app.get(ConfigService);
+  const grantConfig = configService.get('grant') 
+  app.use(
+    session({
+      secret: 'grant',
+      resave: false,
+      saveUninitialized: true,
+    }),
+  )
+  app.use(Grant.express(grantConfig))
   app.enableCors()
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({transform:true}))
-  const configService = app.get(ConfigService);
   const PORT = configService.get('PORT',8000)
   
   //Swagger Integration

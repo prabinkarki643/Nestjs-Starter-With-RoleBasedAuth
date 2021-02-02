@@ -44,6 +44,9 @@ export class UserEntity {
   @Column()
   email: string;
 
+  @Column()
+  avatar: string;
+
   @Column({ select: false })
   password: string;
 
@@ -63,17 +66,17 @@ export class UserEntity {
   confirmationToken?: string;
 
   @Column({ default: false })
-  confirmed?: boolean;
+  confirmed?: boolean
 
   @Column({ default: false })
-  blocked?: boolean;
+  blocked?: boolean
 
   @Column({
     type: 'enum',
     enum: Roles,
     default: Roles.USER,
   })
-  role?: number;
+  role?: number
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt?: Date;
