@@ -22,7 +22,7 @@ async function bootstrap() {
       saveUninitialized: true,
     }),
   )
-  app.use(Grant.express(grantConfig))
+  app.use(Grant.express(grantConfig)) //Provider Login
   app.enableCors()
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(new ValidationPipe({transform:true}))

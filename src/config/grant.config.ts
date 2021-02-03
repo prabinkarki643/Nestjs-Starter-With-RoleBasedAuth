@@ -12,5 +12,7 @@ export default registerAs('grant', () => ({
     nonce: true,
     scope: ['openid', 'profile', 'email'],
     callback: 'http://localhost:8000/frontend/connect/google/callback', //Add frontend callback URL to handle access_token
+    //Custom settings
+    enable:false
   },
 }));

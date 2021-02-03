@@ -22,7 +22,9 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    
+  }
 
   generateTempToken(payload: string | object | Buffer) {
     return this.jwtService.sign(payload, {
@@ -223,6 +225,11 @@ export class AuthService {
   }
 
   async authenticateWithProvider(provider: string, query: any) {
+    const defaultRole = this.configService.get('app.defaultRole');
+    const grantConfig = this.configService.get('grant');
+    if(!grantConfig[provider]?.enable){
+      throw new BadRequestException(`provider-${provider} is disabled`);
+    }
     const userProfile = await this.providerService
       .getProfileFromProvider(provider, query)
       .catch((err) => {
@@ -231,7 +238,6 @@ export class AuthService {
     if (!userProfile.email) {
       throw new BadRequestException('Email was not available.');
     }
-    const defaultRole = this.configService.get('app.defaultRole');
     const newOrExistingUser = await this.userService.findOrCreate({
       ...userProfile,
       role: defaultRole,

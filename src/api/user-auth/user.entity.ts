@@ -5,7 +5,8 @@ import {
   ObjectIdColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  ObjectID
+  ObjectID,
+  Index
 } from 'typeorm';
 import { Exclude, Expose } from "class-transformer";
 import { ApiProperty } from '@nestjs/swagger';
@@ -67,6 +68,7 @@ export class UserEntity {
 
   @Column({ default: false })
   confirmed?: boolean
+
 
   @Column({ default: false })
   blocked?: boolean
