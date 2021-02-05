@@ -18,11 +18,10 @@ import {
   Query,
   Param
 } from '@nestjs/common';
-import { AuthService } from '../services/auth.service';
 
 import { ApiTags } from '@nestjs/swagger';
 import { User } from '../decorators/user.decorator';
-import { ProviderService, UserService } from '../services';
+import { AuthService } from '../services';
 
 @ApiTags('Auth Contrller')
 @Controller()
@@ -94,7 +93,7 @@ export class AuthController {
     if (!access_token) {
       throw new BadRequestException('No access_token.');
     }
-    return this.authService.authenticateWithProvider(provider,query)
+    return this.authService.authenticateWithProvider(provider,access_token)
   }
 
   @Get('/frontend/connect/:provider/callback')

@@ -1,3 +1,5 @@
 export * from './jwt-auth.guard'
 export * from './local-auth.guard'
 export * from './role-based.guard'
+export * from './failedAlways.guard'
+export * from './isTargetUserLoggedIn.guard'

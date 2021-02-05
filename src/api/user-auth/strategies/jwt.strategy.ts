@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     var user = await this.userService.usersRepository.findOne(payload.sub)
-    if(!user) throw new UnauthorizedException("Not a user")
+    if(!user) throw new UnauthorizedException("Not a user or invalid token")
     return user;
   }
 }

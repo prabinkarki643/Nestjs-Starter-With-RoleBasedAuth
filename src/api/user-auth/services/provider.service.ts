@@ -24,10 +24,8 @@ export class ProviderService {
 
   async getProfileFromProvider(
     provider: string,
-    query: any,
+    access_token: string, //access_token || code || oauth_token || id_token;
   ):Promise<ProviderProfile> {
-    const access_token =
-      query.access_token || query.code || query.oauth_token || query.id_token;
     const grant = this.configService.get('grant');
     switch (provider) {
       case 'google':

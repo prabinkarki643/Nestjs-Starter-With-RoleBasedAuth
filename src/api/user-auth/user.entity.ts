@@ -67,18 +67,18 @@ export class UserEntity {
   confirmationToken?: string;
 
   @Column({ default: false })
-  confirmed?: boolean
+  confirmed?: boolean=false
 
 
   @Column({ default: false })
-  blocked?: boolean
+  blocked?: boolean=false
 
   @Column({
     type: 'enum',
     enum: Roles,
     default: Roles.USER,
   })
-  role?: number
+  role?: number=Roles.USER
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt?: Date;

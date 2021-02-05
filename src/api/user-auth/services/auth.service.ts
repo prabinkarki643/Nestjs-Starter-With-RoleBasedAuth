@@ -22,9 +22,7 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly mailerService: MailerService,
     private configService: ConfigService,
-  ) {
-    
-  }
+  ) {}
 
   generateTempToken(payload: string | object | Buffer) {
     return this.jwtService.sign(payload, {
@@ -224,25 +222,29 @@ export class AuthService {
     };
   }
 
-  async authenticateWithProvider(provider: string, query: any) {
+  async authenticateWithProvider(provider: string, access_token: string) {
     const defaultRole = this.configService.get('app.defaultRole');
     const grantConfig = this.configService.get('grant');
-    if(!grantConfig[provider]?.enable){
+    if (!grantConfig[provider]?.enable) {
       throw new BadRequestException(`provider-${provider} is disabled`);
     }
     const userProfile = await this.providerService
-      .getProfileFromProvider(provider, query)
+      .getProfileFromProvider(provider, access_token)
       .catch((err) => {
         throw new BadRequestException(err);
       });
     if (!userProfile.email) {
-      throw new BadRequestException('Email was not available.');
+      throw new BadRequestException(
+        'Email was not available. Use another provider',
+      );
     }
-    const newOrExistingUser = await this.userService.findOrCreate({
-      ...userProfile,
-      role: defaultRole,
-      confirmed: true,
-    });
+    const newOrExistingUser = await this.userService.findOrCreate(
+      new UserEntity({
+        ...userProfile,
+        role: defaultRole,
+        confirmed: true,
+      }),
+    );
 
     return this.generateLoginJwtPayload(newOrExistingUser);
   }
